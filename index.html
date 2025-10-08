@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Canvas Homework Tracker — Connect</title>
+  <title>Canvas Homework Tracker</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -11,16 +11,17 @@
   <main class="container">
     <header class="header">
       <h1>Canvas Homework Tracker</h1>
-      <p class="sub">Step 1 — Connect to your Canvas account</p>
+      <p class="sub">Connect to Canvas, then view your “To-Do” assignments.</p>
     </header>
 
-    <!-- IMPORTANT: action="javascript:void(0)" avoids page reload even if JS isn't ready -->
-    <section class="card">
+    <!-- CONNECT -->
+    <section id="connectSection" class="card">
+      <!-- action avoids page refresh even if JS fails -->
       <form id="authForm" action="javascript:void(0)" novalidate>
         <div class="field">
           <label for="baseUrl">Your Canvas URL</label>
           <input id="baseUrl" type="url" placeholder="https://your-school.instructure.com" required />
-          <small class="hint">Use the exact Canvas domain (must include https://)</small>
+          <small class="hint">Use the exact school Canvas domain (include <code>https://</code>).</small>
         </div>
 
         <div class="field">
@@ -29,7 +30,7 @@
             <input id="token" type="password" placeholder="Paste your token" required />
             <button type="button" id="toggleToken" class="ghost">Show</button>
           </div>
-          <small class="hint">Token stays in your browser; revoke anytime in Canvas → Account → Settings.</small>
+          <small class="hint">Token stays in your browser. Revoke anytime in Canvas → Account → Settings.</small>
         </div>
 
         <button type="submit" class="primary" id="verifyBtn">Verify & Save</button>
@@ -37,23 +38,42 @@
       </form>
     </section>
 
-    <section class="card">
-      <h3>How to get your token</h3>
-      <ol class="steps">
-        <li>Open your school’s Canvas (e.g., <em>your-school.instructure.com</em>) and sign in.</li>
-        <li>Go to <strong>Account → Settings</strong>.</li>
-        <li>In <strong>Approved Integrations</strong>, click <strong>+ New Access Token</strong>.</li>
-        <li>Name it (e.g., “Homework Tracker”), set an expiration, then <strong>Generate Token</strong>.</li>
-        <li>Copy the token and paste it above.</li>
-      </ol>
+    <!-- DASHBOARD -->
+    <section id="dashSection" class="card hidden">
+      <div class="toolbar">
+        <div>
+          <h2 class="dash-title">Hi, <span id="studentName">Student</span> 👋</h2>
+          <p class="muted">Here are items from your Canvas To-Do list.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button id="refreshBtn" class="ghost">Refresh</button>
+          <button id="disconnectBtn" class="ghost danger">Disconnect</button>
+        </div>
+      </div>
+
+      <div id="dashStatus" class="status"></div>
+
+      <div class="lists">
+        <div class="list-column">
+          <h3>Today</h3>
+          <ul id="listToday" class="list"></ul>
+        </div>
+        <div class="list-column">
+          <h3>Next 7 Days</h3>
+          <ul id="listWeek" class="list"></ul>
+        </div>
+        <div class="list-column">
+          <h3>All To-Do</h3>
+          <ul id="listAll" class="list"></ul>
+        </div>
+      </div>
     </section>
 
     <footer class="footer">
-      <p>After connection: we’ll add Courses, Assignments, Today & Week views.</p>
+      <p class="muted">Tip: If nothing appears, you may not have any “To-Do” items yet, or your token lacks access.</p>
     </footer>
   </main>
 
-  <!-- Put the script at the end so the DOM exists when it runs -->
   <script src="app.js"></script>
 </body>
 </html>
