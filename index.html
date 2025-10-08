@@ -1,59 +1,101 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Canvas Homework Tracker</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Background gleam -->
+  <div class="bg-aurora" aria-hidden="true"></div>
+
   <main class="container">
-    <header class="header">
-      <h1>Canvas Homework Tracker</h1>
-      <p class="sub">Connect to Canvas, then view your “To-Do” assignments.</p>
+    <header class="hero">
+      <div class="brand">
+        <div class="logo">🎒</div>
+        <div>
+          <h1>Canvas Homework Tracker</h1>
+          <p class="sub">A fast, beautiful dashboard for your upcoming work.</p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button id="themeToggle" class="chip" title="Toggle theme">🌙</button>
+      </div>
     </header>
 
     <!-- CONNECT -->
-    <section id="connectSection" class="card">
-      <!-- action avoids page refresh even if JS fails -->
+    <section id="connectSection" class="card glass">
       <form id="authForm" action="javascript:void(0)" novalidate>
         <div class="field">
           <label for="baseUrl">Your Canvas URL</label>
           <input id="baseUrl" type="url" placeholder="https://your-school.instructure.com" required />
-          <small class="hint">Use the exact school Canvas domain (include <code>https://</code>).</small>
+          <small class="hint">Include <code>https://</code> and your exact school domain.</small>
         </div>
 
         <div class="field">
           <label for="token">Personal Access Token</label>
           <div class="token-row">
             <input id="token" type="password" placeholder="Paste your token" required />
-            <button type="button" id="toggleToken" class="ghost">Show</button>
+            <button type="button" id="toggleToken" class="chip">Show</button>
           </div>
           <small class="hint">Token stays in your browser. Revoke anytime in Canvas → Account → Settings.</small>
         </div>
 
-        <button type="submit" class="primary" id="verifyBtn">Verify & Save</button>
-        <div id="status" class="status" aria-live="polite"></div>
+        <div class="row">
+          <button type="submit" id="verifyBtn" class="btn primary">Verify & Save</button>
+          <div id="status" class="status" aria-live="polite"></div>
+        </div>
       </form>
     </section>
 
     <!-- DASHBOARD -->
-    <section id="dashSection" class="card hidden">
+    <section id="dashSection" class="card glass hidden">
       <div class="toolbar">
-        <div>
-          <h2 class="dash-title">Hi, <span id="studentName">Student</span> 👋</h2>
-          <p class="muted">Here are items from your Canvas To-Do list.</p>
+        <div class="hello">
+          <h2>Hi, <span id="studentName">Student</span> 👋</h2>
+          <p class="muted">Your Canvas To‑Do, beautifully organized.</p>
         </div>
         <div class="toolbar-actions">
-          <button id="refreshBtn" class="ghost">Refresh</button>
-          <button id="disconnectBtn" class="ghost danger">Disconnect</button>
+          <button id="refreshBtn" class="btn ghost">Refresh</button>
+          <button id="disconnectBtn" class="btn ghost danger">Disconnect</button>
         </div>
       </div>
 
       <div id="dashStatus" class="status"></div>
 
-      <div class="lists">
+      <!-- Loading skeletons -->
+      <div id="skeleton" class="lists">
+        <div class="list-column">
+          <h3>Today</h3>
+          <ul class="list skeleton-list">
+            <li class="skeleton-item"></li>
+            <li class="skeleton-item"></li>
+            <li class="skeleton-item"></li>
+          </ul>
+        </div>
+        <div class="list-column">
+          <h3>Next 7 Days</h3>
+          <ul class="list skeleton-list">
+            <li class="skeleton-item"></li>
+            <li class="skeleton-item"></li>
+            <li class="skeleton-item"></li>
+          </ul>
+        </div>
+        <div class="list-column">
+          <h3>All To‑Do</h3>
+          <ul class="list skeleton-list">
+            <li class="skeleton-item"></li>
+            <li class="skeleton-item"></li>
+            <li class="skeleton-item"></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Real lists -->
+      <div id="lists" class="lists hidden">
         <div class="list-column">
           <h3>Today</h3>
           <ul id="listToday" class="list"></ul>
@@ -63,17 +105,24 @@
           <ul id="listWeek" class="list"></ul>
         </div>
         <div class="list-column">
-          <h3>All To-Do</h3>
+          <h3>All To‑Do</h3>
           <ul id="listAll" class="list"></ul>
         </div>
       </div>
     </section>
 
     <footer class="footer">
-      <p class="muted">Tip: If nothing appears, you may not have any “To-Do” items yet, or your token lacks access.</p>
+      <p class="muted">Tip: Add new assignments in Canvas; then press <strong>Refresh</strong> here.</p>
     </footer>
   </main>
 
+  <!-- Toasts -->
+  <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Scripts (modular & small) -->
+  <script src="utils.js"></script>
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
