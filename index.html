@@ -14,16 +14,22 @@
       <p class="sub">Step 1 — Connect to your Canvas account</p>
     </header>
 
+    <!-- IMPORTANT: action="javascript:void(0)" avoids page reload even if JS isn't ready -->
     <section class="card">
-      <form id="authForm" novalidate>
+      <form id="authForm" action="javascript:void(0)" novalidate>
         <div class="field">
           <label for="baseUrl">Your Canvas URL</label>
           <input id="baseUrl" type="url" placeholder="https://your-school.instructure.com" required />
+          <small class="hint">Use the exact Canvas domain (must include https://)</small>
         </div>
 
         <div class="field">
           <label for="token">Personal Access Token</label>
-          <input id="token" type="password" placeholder="Paste your token" required />
+          <div class="token-row">
+            <input id="token" type="password" placeholder="Paste your token" required />
+            <button type="button" id="toggleToken" class="ghost">Show</button>
+          </div>
+          <small class="hint">Token stays in your browser; revoke anytime in Canvas → Account → Settings.</small>
         </div>
 
         <button type="submit" class="primary" id="verifyBtn">Verify & Save</button>
@@ -31,10 +37,23 @@
       </form>
     </section>
 
+    <section class="card">
+      <h3>How to get your token</h3>
+      <ol class="steps">
+        <li>Open your school’s Canvas (e.g., <em>your-school.instructure.com</em>) and sign in.</li>
+        <li>Go to <strong>Account → Settings</strong>.</li>
+        <li>In <strong>Approved Integrations</strong>, click <strong>+ New Access Token</strong>.</li>
+        <li>Name it (e.g., “Homework Tracker”), set an expiration, then <strong>Generate Token</strong>.</li>
+        <li>Copy the token and paste it above.</li>
+      </ol>
+    </section>
+
     <footer class="footer">
-      <p>Next: Courses, Assignments, and Week view.</p>
+      <p>After connection: we’ll add Courses, Assignments, Today & Week views.</p>
     </footer>
   </main>
-  <script src="app.js" defer></script>
+
+  <!-- Put the script at the end so the DOM exists when it runs -->
+  <script src="app.js"></script>
 </body>
 </html>
