@@ -4,125 +4,199 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Canvas Homework Tracker</title>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <meta name="color-scheme" content="dark light" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Background gleam -->
-  <div class="bg-aurora" aria-hidden="true"></div>
+  <!-- AURORA / GLOW BACKDROP -->
+  <div class="bg-aurora" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">
+        <!-- simple inline icon -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2l3.09 6.26 6.91.99-5 4.86L18.18 22 12 18.77 5.82 22l1.18-7.89-5-4.86 6.91-.99L12 2z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <strong>Homework Tracker</strong>
+        <span>for Canvas</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="themeBtn" class="icon-btn" aria-label="Toggle theme" title="Toggle theme (D)">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M12 3a1 1 0 011 1v1a1 1 0 11-2 0V4a1 1 0 011-1zm0 15a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm8-7a1 1 0 011 1 1 1 0 01-1 1h-1a1 1 0 110-2h1zM5 12a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zm11.66-6.66a1 1 0 011.41 0l.71.71a1 1 0 11-1.41 1.41l-.71-.71a1 1 0 010-1.41zM6.63 17.37a1 1 0 011.41 0l.71.71a1 1 0 11-1.41 1.41l-.71-.71a1 1 0 010-1.41zM17.37 17.37a1 1 0 010 1.41l-.71.71a1 1 0 11-1.41-1.41l.71-.71a1 1 0 011.41 0zM7.34 5.34a1 1 0 010 1.41l-.71.71A1 1 0 114.22 6.05l.71-.71a1 1 0 011.41 0z" fill="currentColor"/>
+        </svg>
+      </button>
+      <a id="openCanvas" class="ghost small" href="#" target="_blank" rel="noopener">Open Canvas</a>
+    </div>
+  </header>
 
   <main class="container">
-    <header class="hero">
-      <div class="brand">
-        <div class="logo">🎒</div>
-        <div>
-          <h1>Canvas Homework Tracker</h1>
-          <p class="sub">A fast, beautiful dashboard for your upcoming work.</p>
-        </div>
-      </div>
-      <div class="hero-actions">
-        <button id="themeToggle" class="chip" title="Toggle theme">🌙</button>
-      </div>
-    </header>
 
-    <!-- CONNECT -->
-    <section id="connectSection" class="card glass">
+    <!-- CONNECT CARD -->
+    <section id="connectSection" class="card card-glass">
+      <div class="card-header">
+        <h1>Connect to Canvas</h1>
+        <p class="muted">Paste your Canvas <strong>Personal Access Token</strong> and your exact school domain.</p>
+      </div>
+
       <form id="authForm" action="javascript:void(0)" novalidate>
-        <div class="field">
-          <label for="baseUrl">Your Canvas URL</label>
-          <input id="baseUrl" type="url" placeholder="https://your-school.instructure.com" required />
-          <small class="hint">Include <code>https://</code> and your exact school domain.</small>
-        </div>
-
-        <div class="field">
-          <label for="token">Personal Access Token</label>
-          <div class="token-row">
-            <input id="token" type="password" placeholder="Paste your token" required />
-            <button type="button" id="toggleToken" class="chip">Show</button>
+        <div class="grid g2">
+          <div class="field">
+            <label for="baseUrl">Canvas URL</label>
+            <input id="baseUrl" type="url" placeholder="https://your-school.instructure.com" required />
+            <small class="hint">Must include <code>https://</code> and end with <code>.instructure.com</code>.</small>
           </div>
-          <small class="hint">Token stays in your browser. Revoke anytime in Canvas → Account → Settings.</small>
+
+          <div class="field">
+            <label for="token">Personal Access Token</label>
+            <div class="token-row">
+              <input id="token" type="password" placeholder="Paste your token" required />
+              <button type="button" id="toggleToken" class="ghost">Show</button>
+            </div>
+            <small class="hint">Stored only in your browser. Revoke anytime in Canvas → Account → Settings.</small>
+          </div>
         </div>
 
         <div class="row">
-          <button type="submit" id="verifyBtn" class="btn primary">Verify & Save</button>
+          <button type="submit" class="primary" id="verifyBtn">Verify & Save</button>
           <div id="status" class="status" aria-live="polite"></div>
         </div>
       </form>
+
+      <details class="help">
+        <summary>How do I get my token?</summary>
+        <ol class="steps">
+          <li>Sign into your Canvas: <em>your-school.instructure.com</em></li>
+          <li>Go to <strong>Account → Settings</strong></li>
+          <li><strong>+ New Access Token</strong> → name it, set expiration → <strong>Generate</strong></li>
+          <li>Copy and paste here</li>
+        </ol>
+      </details>
     </section>
 
     <!-- DASHBOARD -->
-    <section id="dashSection" class="card glass hidden">
-      <div class="toolbar">
-        <div class="hello">
-          <h2>Hi, <span id="studentName">Student</span> 👋</h2>
-          <p class="muted">Your Canvas To‑Do, beautifully organized.</p>
+    <section id="dashSection" class="hidden">
+      <!-- KPI STRIP -->
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-top">
+            <span class="kpi-label">Today</span>
+            <span class="kpi-dot danger"></span>
+          </div>
+          <div class="kpi-value" id="kpiToday">0</div>
         </div>
-        <div class="toolbar-actions">
-          <button id="refreshBtn" class="btn ghost">Refresh</button>
-          <button id="disconnectBtn" class="btn ghost danger">Disconnect</button>
+        <div class="kpi">
+          <div class="kpi-top">
+            <span class="kpi-label">Next 7 Days</span>
+            <span class="kpi-dot warn"></span>
+          </div>
+          <div class="kpi-value" id="kpiWeek">0</div>
         </div>
-      </div>
-
-      <div id="dashStatus" class="status"></div>
-
-      <!-- Loading skeletons -->
-      <div id="skeleton" class="lists">
-        <div class="list-column">
-          <h3>Today</h3>
-          <ul class="list skeleton-list">
-            <li class="skeleton-item"></li>
-            <li class="skeleton-item"></li>
-            <li class="skeleton-item"></li>
-          </ul>
+        <div class="kpi">
+          <div class="kpi-top">
+            <span class="kpi-label">Later / No Due</span>
+            <span class="kpi-dot"></span>
+          </div>
+          <div class="kpi-value" id="kpiLater">0</div>
         </div>
-        <div class="list-column">
-          <h3>Next 7 Days</h3>
-          <ul class="list skeleton-list">
-            <li class="skeleton-item"></li>
-            <li class="skeleton-item"></li>
-            <li class="skeleton-item"></li>
-          </ul>
-        </div>
-        <div class="list-column">
-          <h3>All To‑Do</h3>
-          <ul class="list skeleton-list">
-            <li class="skeleton-item"></li>
-            <li class="skeleton-item"></li>
-            <li class="skeleton-item"></li>
-          </ul>
+        <div class="kpi">
+          <div class="kpi-top">
+            <span class="kpi-label">Past Due</span>
+            <span class="kpi-dot danger"></span>
+          </div>
+          <div class="kpi-value" id="kpiPast">0</div>
         </div>
       </div>
 
-      <!-- Real lists -->
-      <div id="lists" class="lists hidden">
-        <div class="list-column">
-          <h3>Today</h3>
+      <!-- TOOLBAR -->
+      <div class="toolbar card card-glass">
+        <div class="left">
+          <h2 class="dash-title">Hi, <span id="studentName">Student</span> 👋</h2>
+          <p class="muted small">Your Canvas To-Do items at a glance</p>
+        </div>
+        <div class="right controls">
+          <div class="search">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1111 4a7 7 0 017 7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input id="searchInput" type="search" placeholder="Search ( / )" />
+          </div>
+          <select id="filterSelect" class="select">
+            <option value="all">All</option>
+            <option value="today">Due Today</option>
+            <option value="week">Next 7 Days</option>
+            <option value="later">Later / No Due</option>
+            <option value="past">Past Due</option>
+            <option value="done">Done (local)</option>
+          </select>
+          <select id="sortSelect" class="select">
+            <option value="dueAsc">Sort: Due ↑</option>
+            <option value="dueDesc">Sort: Due ↓</option>
+            <option value="courseAsc">Sort: Course A→Z</option>
+          </select>
+          <label class="chk">
+            <input type="checkbox" id="hideDone" />
+            <span>Hide Done</span>
+          </label>
+          <button id="refreshBtn" class="ghost">Refresh (R)</button>
+          <button id="disconnectBtn" class="ghost danger">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- LISTS -->
+      <div class="lists">
+        <section class="list-col card card-glass">
+          <h3 class="list-title">
+            Today
+            <span class="chip danger" id="ctToday">0</span>
+          </h3>
           <ul id="listToday" class="list"></ul>
-        </div>
-        <div class="list-column">
-          <h3>Next 7 Days</h3>
+          <div class="skeleton" id="skToday" aria-hidden="true"></div>
+        </section>
+
+        <section class="list-col card card-glass">
+          <h3 class="list-title">
+            Next 7 Days
+            <span class="chip warn" id="ctWeek">0</span>
+          </h3>
           <ul id="listWeek" class="list"></ul>
-        </div>
-        <div class="list-column">
-          <h3>All To‑Do</h3>
-          <ul id="listAll" class="list"></ul>
-        </div>
+          <div class="skeleton" id="skWeek" aria-hidden="true"></div>
+        </section>
+
+        <section class="list-col card card-glass">
+          <h3 class="list-title">
+            Later / No Due
+            <span class="chip" id="ctLater">0</span>
+          </h3>
+          <ul id="listLater" class="list"></ul>
+          <div class="skeleton" id="skLater" aria-hidden="true"></div>
+        </section>
       </div>
+
+      <section class="list-full card card-glass">
+        <h3 class="list-title">
+          All To-Do
+          <span class="chip" id="ctAll">0</span>
+        </h3>
+        <ul id="listAll" class="list"></ul>
+        <div class="skeleton" id="skAll" aria-hidden="true"></div>
+        <div id="dashStatus" class="status"></div>
+      </section>
     </section>
 
-    <footer class="footer">
-      <p class="muted">Tip: Add new assignments in Canvas; then press <strong>Refresh</strong> here.</p>
-    </footer>
   </main>
 
-  <!-- Toasts -->
-  <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+  <!-- TOAST -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Scripts (modular & small) -->
-  <script src="utils.js"></script>
-  <script src="api.js"></script>
-  <script src="ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
