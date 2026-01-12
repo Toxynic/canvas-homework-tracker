@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Canvas Homework Tracker</title>
+  <title>UNO Online</title>
   <meta name="color-scheme" content="dark light" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
@@ -19,14 +19,13 @@
   <header class="topbar">
     <div class="brand">
       <div class="logo">
-        <!-- simple inline icon -->
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 2l3.09 6.26 6.91.99-5 4.86L18.18 22 12 18.77 5.82 22l1.18-7.89-5-4.86 6.91-.99L12 2z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <path d="M4 12a8 8 0 1116 0 8 8 0 01-16 0zm10.5-2.5c-.5-.5-1.3-.5-1.8 0l-.7.7-.7-.7c-.5-.5-1.3-.5-1.8 0-.5.5-.5 1.3 0 1.8l.7.7-.7.7c-.5.5-.5 1.3 0 1.8.5.5 1.3.5 1.8 0l.7-.7.7.7c.5.5 1.3.5 1.8 0 .5-.5.5-1.3 0-1.8l-.7-.7.7-.7c.5-.5.5-1.3 0-1.8z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <div class="brand-text">
-        <strong>Homework Tracker</strong>
-        <span>for Canvas</span>
+        <strong>UNO Online</strong>
+        <span>Play in your browser</span>
       </div>
     </div>
 
@@ -36,166 +35,80 @@
           <path d="M12 3a1 1 0 011 1v1a1 1 0 11-2 0V4a1 1 0 011-1zm0 15a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm8-7a1 1 0 011 1 1 1 0 01-1 1h-1a1 1 0 110-2h1zM5 12a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zm11.66-6.66a1 1 0 011.41 0l.71.71a1 1 0 11-1.41 1.41l-.71-.71a1 1 0 010-1.41zM6.63 17.37a1 1 0 011.41 0l.71.71a1 1 0 11-1.41 1.41l-.71-.71a1 1 0 010-1.41zM17.37 17.37a1 1 0 010 1.41l-.71.71a1 1 0 11-1.41-1.41l.71-.71a1 1 0 011.41 0zM7.34 5.34a1 1 0 010 1.41l-.71.71A1 1 0 114.22 6.05l.71-.71a1 1 0 011.41 0z" fill="currentColor"/>
         </svg>
       </button>
-      <a id="openCanvas" class="ghost small" href="#" target="_blank" rel="noopener">Open Canvas</a>
+      <button id="newGameBtn" class="primary">New Game</button>
     </div>
   </header>
 
   <main class="container">
-
-    <!-- CONNECT CARD -->
-    <section id="connectSection" class="card card-glass">
-      <div class="card-header">
-        <h1>Connect to Canvas</h1>
-        <p class="muted">Paste your Canvas <strong>Personal Access Token</strong> and your exact school domain.</p>
-      </div>
-
-      <form id="authForm" action="javascript:void(0)" novalidate>
-        <div class="grid g2">
-          <div class="field">
-            <label for="baseUrl">Canvas URL</label>
-            <input id="baseUrl" type="url" placeholder="https://your-school.instructure.com" required />
-            <small class="hint">Must include <code>https://</code> and end with <code>.instructure.com</code>.</small>
-          </div>
-
-          <div class="field">
-            <label for="token">Personal Access Token</label>
-            <div class="token-row">
-              <input id="token" type="password" placeholder="Paste your token" required />
-              <button type="button" id="toggleToken" class="ghost">Show</button>
-            </div>
-            <small class="hint">Stored only in your browser. Revoke anytime in Canvas → Account → Settings.</small>
-          </div>
-        </div>
-
+    <section class="card card-glass hero">
+      <div>
+        <p class="overline">Table</p>
+        <h1>UNO Online</h1>
+        <p class="muted">Play a full game of UNO against three quick-thinking bots. Choose cards that match color or value, unleash wild cards, and race to empty your hand first.</p>
         <div class="row">
-          <button type="submit" class="primary" id="verifyBtn">Verify & Save</button>
-          <div id="status" class="status" aria-live="polite"></div>
+          <button class="primary" id="startBtn">Start match</button>
+          <div id="gameStatus" class="status">Waiting to start…</div>
         </div>
-      </form>
-
-      <details class="help">
-        <summary>How do I get my token?</summary>
-        <ol class="steps">
-          <li>Sign into your Canvas: <em>your-school.instructure.com</em></li>
-          <li>Go to <strong>Account → Settings</strong></li>
-          <li><strong>+ New Access Token</strong> → name it, set expiration → <strong>Generate</strong></li>
-          <li>Copy and paste here</li>
-        </ol>
-      </details>
+      </div>
     </section>
 
-    <!-- DASHBOARD -->
-    <section id="dashSection" class="hidden">
-      <!-- KPI STRIP -->
-      <div class="kpis">
-        <div class="kpi">
-          <div class="kpi-top">
-            <span class="kpi-label">Today</span>
-            <span class="kpi-dot danger"></span>
-          </div>
-          <div class="kpi-value" id="kpiToday">0</div>
+    <section class="board card card-glass">
+      <div class="board-top">
+        <div>
+          <p class="label">Current turn</p>
+          <h2 id="currentTurn">–</h2>
+          <p class="muted small">Direction: <span id="directionLabel">Clockwise</span></p>
         </div>
-        <div class="kpi">
-          <div class="kpi-top">
-            <span class="kpi-label">Next 7 Days</span>
-            <span class="kpi-dot warn"></span>
+        <div class="pile">
+          <div class="pile-card draw" id="drawPile">
+            <span>Draw</span>
+            <strong id="drawCount">0</strong>
           </div>
-          <div class="kpi-value" id="kpiWeek">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-top">
-            <span class="kpi-label">Later / No Due</span>
-            <span class="kpi-dot"></span>
+          <div class="pile-card discard" id="topCard">
+            <span>Top card</span>
+            <strong>—</strong>
           </div>
-          <div class="kpi-value" id="kpiLater">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-top">
-            <span class="kpi-label">Past Due</span>
-            <span class="kpi-dot danger"></span>
+          <div class="color-indicator">
+            <span class="label">Active color</span>
+            <div id="currentColor" class="color-dot"></div>
           </div>
-          <div class="kpi-value" id="kpiPast">0</div>
         </div>
       </div>
 
-      <!-- TOOLBAR -->
-      <div class="toolbar card card-glass">
-        <div class="left">
-          <h2 class="dash-title">Hi, <span id="studentName">Student</span> 👋</h2>
-          <p class="muted small">Your Canvas To-Do items at a glance</p>
-        </div>
-        <div class="right controls">
-          <div class="search">
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M21 21l-4.35-4.35m1.35-5.65A7 7 0 1111 4a7 7 0 017 7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            <input id="searchInput" type="search" placeholder="Search ( / )" />
+      <div class="opponents" id="opponents"></div>
+
+      <div class="hand-wrap">
+        <div class="hand-head">
+          <h3>Your hand</h3>
+          <div class="controls">
+            <button id="drawBtn" class="ghost">Draw card</button>
+            <button id="passBtn" class="ghost small">Pass</button>
           </div>
-          <select id="filterSelect" class="select">
-            <option value="all">All</option>
-            <option value="today">Due Today</option>
-            <option value="week">Next 7 Days</option>
-            <option value="later">Later / No Due</option>
-            <option value="past">Past Due</option>
-            <option value="done">Done (local)</option>
-          </select>
-          <select id="sortSelect" class="select">
-            <option value="dueAsc">Sort: Due ↑</option>
-            <option value="dueDesc">Sort: Due ↓</option>
-            <option value="courseAsc">Sort: Course A→Z</option>
-          </select>
-          <label class="chk">
-            <input type="checkbox" id="hideDone" />
-            <span>Hide Done</span>
-          </label>
-          <button id="refreshBtn" class="ghost">Refresh (R)</button>
-          <button id="disconnectBtn" class="ghost danger">Disconnect</button>
         </div>
+        <div id="hand" class="hand"></div>
       </div>
 
-      <!-- LISTS -->
-      <div class="lists">
-        <section class="list-col card card-glass">
-          <h3 class="list-title">
-            Today
-            <span class="chip danger" id="ctToday">0</span>
-          </h3>
-          <ul id="listToday" class="list"></ul>
-          <div class="skeleton" id="skToday" aria-hidden="true"></div>
-        </section>
-
-        <section class="list-col card card-glass">
-          <h3 class="list-title">
-            Next 7 Days
-            <span class="chip warn" id="ctWeek">0</span>
-          </h3>
-          <ul id="listWeek" class="list"></ul>
-          <div class="skeleton" id="skWeek" aria-hidden="true"></div>
-        </section>
-
-        <section class="list-col card card-glass">
-          <h3 class="list-title">
-            Later / No Due
-            <span class="chip" id="ctLater">0</span>
-          </h3>
-          <ul id="listLater" class="list"></ul>
-          <div class="skeleton" id="skLater" aria-hidden="true"></div>
-        </section>
+      <div class="log">
+        <div class="log-head">
+          <h4>Table log</h4>
+          <button id="clearLog" class="ghost small">Clear</button>
+        </div>
+        <ul id="logList"></ul>
       </div>
-
-      <section class="list-full card card-glass">
-        <h3 class="list-title">
-          All To-Do
-          <span class="chip" id="ctAll">0</span>
-        </h3>
-        <ul id="listAll" class="list"></ul>
-        <div class="skeleton" id="skAll" aria-hidden="true"></div>
-        <div id="dashStatus" class="status"></div>
-      </section>
     </section>
-
   </main>
 
-  <!-- TOAST -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="colorChooser" class="color-chooser hidden" role="dialog" aria-modal="true">
+    <div class="chooser-card card">
+      <p>Pick a color for your wild card</p>
+      <div class="color-options">
+        <button data-color="red" style="--c:#ff4d4d">Red</button>
+        <button data-color="yellow" style="--c:#ffd93b">Yellow</button>
+        <button data-color="green" style="--c:#45e26b">Green</button>
+        <button data-color="blue" style="--c:#4da3ff">Blue</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

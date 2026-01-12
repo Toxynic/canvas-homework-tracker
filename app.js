@@ -1,597 +1,427 @@
 /* =========================================================
-   Canvas Homework Tracker — Premium UI + Enhanced Features
-   - Theme toggle (dark/light) + keyboard shortcuts (D, R, /)
-   - Connect screen → Dashboard transition
-   - Fetch To-Do items (paginated), Course map, caching
-   - Search, filter (Today/Week/Later/Past/Dones), sort
-   - Local "Done" + "Snooze" (kept in localStorage)
-   - Skeleton loading, toasts, micro-animations
-   - Netlify Function proxy path: /.netlify/functions/canvas-proxy
+   UNO Online — Lightweight browser table with bots
+   - Human vs 3 bots, full UNO deck, draw/skip/reverse/wild effects
+   - Simple turn engine with direction + pending draw handling
+   - Theme toggle + keyboard shortcuts (D for theme, Space to draw)
 ========================================================= */
 
-console.log("[tracker] app.js loaded");
-
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("[tracker] DOM ready");
+  const root = document.documentElement;
 
   /* ---------- Elements ---------- */
-  const html = document.documentElement;
-
-  const connectSection = $("#connectSection");
-  const dashSection    = $("#dashSection");
-
-  // connect
-  const form      = $("#authForm");
-  const statusEl  = $("#status");
-  const verifyBtn = $("#verifyBtn");
-  const toggleBtn = $("#toggleToken");
-  const baseUrlInput = $("#baseUrl");
-  const tokenInput   = $("#token");
-
-  // header / global
-  const openCanvas = $("#openCanvas");
-  const themeBtn   = $("#themeBtn");
-  const toastEl    = $("#toast");
-
-  // dashboard
-  const studentName = $("#studentName");
-  const refreshBtn  = $("#refreshBtn");
-  const disconnectBtn = $("#disconnectBtn");
-  const dashStatus  = $("#dashStatus");
-
-  const listToday = $("#listToday");
-  const listWeek  = $("#listWeek");
-  const listLater = $("#listLater");
-  const listAll   = $("#listAll");
-
-  const skToday = $("#skToday");
-  const skWeek  = $("#skWeek");
-  const skLater = $("#skLater");
-  const skAll   = $("#skAll");
-
-  const kpiToday = $("#kpiToday");
-  const kpiWeek  = $("#kpiWeek");
-  const kpiLater = $("#kpiLater");
-  const kpiPast  = $("#kpiPast");
-
-  const ctToday = $("#ctToday");
-  const ctWeek  = $("#ctWeek");
-  const ctLater = $("#ctLater");
-  const ctAll   = $("#ctAll");
-
-  const searchInput = $("#searchInput");
-  const filterSelect = $("#filterSelect");
-  const sortSelect   = $("#sortSelect");
-  const hideDoneCB   = $("#hideDone");
-
-  // API proxy
-  const PROXY_URL = "/.netlify/functions/canvas-proxy";
+  const themeBtn = $("#themeBtn");
+  const newGameBtn = $("#newGameBtn");
+  const startBtn = $("#startBtn");
+  const drawBtn = $("#drawBtn");
+  const passBtn = $("#passBtn");
+  const drawPile = $("#drawPile");
+  const drawCount = $("#drawCount");
+  const topCardEl = $("#topCard");
+  const currentColorDot = $("#currentColor");
+  const currentTurnEl = $("#currentTurn");
+  const directionLabel = $("#directionLabel");
+  const opponentsEl = $("#opponents");
+  const handEl = $("#hand");
+  const logList = $("#logList");
+  const clearLogBtn = $("#clearLog");
+  const gameStatus = $("#gameStatus");
+  const colorChooser = $("#colorChooser");
+  const colorButtons = colorChooser.querySelectorAll("button");
 
   /* ---------- State ---------- */
-  let state = {
-    baseUrl: null,
-    token: null,
-    profile: null,
-    courses: null,   // map by id
-    todo: [],        // raw API items
-    ui: {
-      search: "",
-      filter: "all", // all | today | week | later | past | done
-      sort: "dueAsc",
-      hideDone: false,
-    }
+  const colors = ["red", "yellow", "green", "blue"];
+  const numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const actions = ["skip", "reverse", "draw2"];
+
+  const state = {
+    players: [],
+    deck: [],
+    discard: [],
+    currentPlayer: 0,
+    direction: 1,
+    currentColor: null,
+    pendingDraw: 0,
+    started: false,
+    winner: null,
   };
 
-  /* ---------- Utils ---------- */
-  function $(s){ return document.querySelector(s); }
-  function setStatus(type, msg){
-    statusEl.className = `status ${type}`;
-    statusEl.textContent = msg;
-  }
-  function setDashStatus(type, msg){
-    dashStatus.className = `status ${type}`;
-    dashStatus.textContent = msg;
-  }
-  function toast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add("show");
-    setTimeout(()=> toastEl.classList.remove("show"), 1500);
-  }
-  function normalizeUrl(u){
-    if (!/^https?:\/\//i.test(u)) u = "https://" + u;
-    return u.replace(/\/+$/,"");
-  }
-  function isValidUrl(u){
-    try { new URL(u); return true; } catch { return false; }
-  }
-  function saveAuth(){
-    try { localStorage.setItem("canvasAuth", JSON.stringify({ baseUrl: state.baseUrl, token: state.token, profile: state.profile })); } catch {}
-  }
-  function loadAuth(){
-    try {
-      const raw = localStorage.getItem("canvasAuth");
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch { return null; }
-  }
-  function saveCache(key, data){
-    try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), data })); } catch {}
-  }
-  function loadCache(key, maxAgeMs){
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
-      if (Date.now() - obj.t > maxAgeMs) return null;
-      return obj.data;
-    } catch { return null; }
-  }
-  function showDashboard(){
-    connectSection.classList.add("hidden");
-    dashSection.classList.remove("hidden");
-    window.scrollTo({ top:0, behavior:"smooth" });
-  }
-  function showConnect(){
-    dashSection.classList.add("hidden");
-    connectSection.classList.remove("hidden");
-  }
-  function setOpenCanvasHref(){
-    if (state.baseUrl) {
-      openCanvas.href = state.baseUrl;
-    } else {
-      openCanvas.href = "#";
-    }
-  }
+  let pendingWild = null;
 
-  // Theming
-  function toggleTheme(){
-    const next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    html.setAttribute("data-theme", next);
+  /* ---------- Helpers ---------- */
+  function $(s) {
+    return document.querySelector(s);
+  }
+  function initTheme() {
+    const saved = localStorage.getItem("theme");
+    if (saved) root.setAttribute("data-theme", saved);
+  }
+  function toggleTheme() {
+    const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    root.setAttribute("data-theme", next);
     localStorage.setItem("theme", next);
   }
-  function initTheme(){
-    const saved = localStorage.getItem("theme");
-    if (saved) html.setAttribute("data-theme", saved);
+  function setStatus(text) {
+    gameStatus.textContent = text;
   }
-
-  // Colors for courses
-  function colorForCourse(courseId){
-    if (!courseId) return "#7aa7ff";
-    let x = courseId;
-    x = ((x<<13) ^ x) >>> 0;
-    const hue = x % 360;
-    return `hsl(${hue} 70% 60%)`;
-  }
-
-  // Dates
-  function parseDue(item){
-    return item.assignment?.due_at || item.due_at || null;
-  }
-  function dueCategory(iso){
-    if (!iso) return "later";
-    const t = new Date(iso).getTime();
-    const now = Date.now();
-    const endToday = new Date(); endToday.setHours(23,59,59,999);
-    const endWeek  = new Date(); endWeek.setDate(endWeek.getDate()+7); endWeek.setHours(23,59,59,999);
-    if (t < now) return "past";
-    if (t <= endToday.getTime()) return "today";
-    if (t <= endWeek.getTime()) return "week";
-    return "later";
-  }
-  function formatDue(iso){
-    if (!iso) return ["No due date", "ok"];
-    const t = new Date(iso);
-    const now = new Date();
-    const diff = t.getTime() - now.getTime();
-    const days = Math.floor(diff/(24*3600*1000));
-    const pretty = t.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
-    if (diff < 0) return [`Past Due • ${pretty}`, "bad"];
-    if (days === 0) return [`Due Today • ${pretty}`, "bad"];
-    if (days === 1) return [`Due Tomorrow • ${pretty}`, "warn"];
-    if (days <= 7) return [`Due in ${days}d • ${pretty}`, "warn"];
-    return [`Due ${pretty}`, "ok"];
-  }
-
-  // Local Done / Snooze
-  function doneKey(item){ return `done:${item.html_url || item.assignment?.id || item.id}`; }
-  function snoozeKey(item){ return `snooze:${item.html_url || item.assignment?.id || item.id}`; }
-  function isDone(item){ return localStorage.getItem(doneKey(item)) === "1"; }
-  function setDone(item, v){ if (v) localStorage.setItem(doneKey(item), "1"); else localStorage.removeItem(doneKey(item)); }
-  function getSnooze(item){ const v = localStorage.getItem(snoozeKey(item)); return v ? Number(v) : 0; }
-  function setSnooze(item, ts){ if (ts) localStorage.setItem(snoozeKey(item), String(ts)); else localStorage.removeItem(snoozeKey(item)); }
-  function applySnoozeFilter(items){
-    const now = Date.now();
-    return items.filter(it => {
-      const sn = getSnooze(it);
-      if (sn && sn > now) return false; // hide snoozed until time
-      return true;
-    });
-  }
-
-  // DOM helpers
-  function clearLists(){
-    [listToday,listWeek,listLater,listAll].forEach(ul => ul.innerHTML = "");
-  }
-  function showSkeletons(show){
-    [skToday, skWeek, skLater, skAll].forEach(s => s.style.display = show ? "block" : "none");
-  }
-  function badge(text, style){
-    const span = document.createElement("span");
-    span.className = `badge ${style||""}`;
-    span.textContent = text;
-    return span;
-  }
-
-  function renderItem(ul, item, courseName){
+  function log(msg) {
     const li = document.createElement("li");
-    li.className = "item";
-
-    const left = document.createElement("div");
-    left.className = "item-left";
-
-    // title
-    const title = document.createElement("p");
-    title.className = "item-title";
-    title.textContent = item.title || item.assignment?.name || "Untitled";
-
-    // meta
-    const meta = document.createElement("div");
-    meta.className = "item-meta";
-
-    const course = document.createElement("span");
-    course.className = "badge";
-    const dot = document.createElement("i");
-    dot.className = "course-dot";
-    dot.style.background = colorForCourse(item.assignment?.course_id || item.course_id);
-    course.appendChild(dot);
-    const cn = document.createElement("span");
-    cn.textContent = " " + (courseName || item.context_name || `Course #${item.assignment?.course_id || ""}`).trim();
-    course.appendChild(cn);
-
-    const [dueText, dueStyle] = formatDue(parseDue(item));
-    const due = document.createElement("span");
-    due.className = `badge dot ${dueStyle === "bad" ? "bad" : dueStyle === "warn" ? "warn" : "ok"}`;
-    due.textContent = dueText;
-
-    meta.appendChild(course);
-    meta.appendChild(due);
-
-    left.appendChild(title);
-    left.appendChild(meta);
-
-    // right
-    const right = document.createElement("div");
-    right.className = "item-right";
-
-    // done
-    const done = document.createElement("input");
-    done.type = "checkbox";
-    done.className = "toggle";
-    done.checked = isDone(item);
-    done.title = "Mark as done (local)";
-    done.addEventListener("change", () => {
-      setDone(item, done.checked);
-      toast(done.checked ? "Marked done" : "Marked not done");
-      renderAll(); // re-apply filters if Hide Done
-    });
-
-    // link
-    const link = document.createElement("a");
-    link.className = "pill link";
-    link.href = item.html_url || item.assignment?.html_url || "#";
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Open";
-
-    // menu (snooze)
-    const menu = document.createElement("div");
-    menu.className = "menu";
-    const mbtn = document.createElement("button");
-    mbtn.textContent = "More ▾";
-    mbtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      menu.classList.toggle("open");
-      document.addEventListener("click", closeMenuOnce, { once: true });
-    });
-    function closeMenuOnce(){ menu.classList.remove("open"); }
-
-    const list = document.createElement("div");
-    list.className = "menu-list";
-    const m1 = document.createElement("button"); m1.className="menu-item"; m1.textContent="Snooze: Tonight 8pm";
-    const m2 = document.createElement("button"); m2.className="menu-item"; m2.textContent="Snooze: +1 day";
-    const m3 = document.createElement("button"); m3.className="menu-item"; m3.textContent="Snooze: +3 days";
-    const m4 = document.createElement("button"); m4.className="menu-item"; m4.textContent="Clear Snooze";
-
-    m1.onclick = () => { const d = new Date(); d.setHours(20,0,0,0); setSnooze(item, d.getTime()); toast("Snoozed to tonight"); renderAll(); };
-    m2.onclick = () => { const d = new Date(); d.setDate(d.getDate()+1); d.setHours(8,0,0,0); setSnooze(item, d.getTime()); toast("Snoozed +1 day"); renderAll(); };
-    m3.onclick = () => { const d = new Date(); d.setDate(d.getDate()+3); d.setHours(8,0,0,0); setSnooze(item, d.getTime()); toast("Snoozed +3 days"); renderAll(); };
-    m4.onclick = () => { setSnooze(item, 0); toast("Snooze cleared"); renderAll(); };
-
-    list.append(m1,m2,m3,m4);
-    menu.append(mbtn, list);
-
-    const act = document.createElement("div");
-    act.className = "act";
-    act.append(done, link, menu);
-
-    right.appendChild(act);
-
-    li.append(left, right);
-    ul.appendChild(li);
+    li.textContent = msg;
+    logList.appendChild(li);
+    logList.scrollTop = logList.scrollHeight;
   }
-
-  /* ---------- API ---------- */
-  async function apiFetch(path, opts = {}){
-    const url = `${PROXY_URL}?base=${encodeURIComponent(state.baseUrl)}&path=${encodeURIComponent(path)}`;
-    const resp = await fetch(url, {
-      method: opts.method || "GET",
-      headers: {
-        "X-Canvas-Token": state.token,
-        "Accept": "application/json",
-        ...(opts.headers || {})
-      },
-      body: opts.body
-    });
-    if (!resp.ok) {
-      const text = await resp.text().catch(()=>resp.statusText);
-      throw new Error(`Proxy ${resp.status}: ${text || resp.statusText}`);
-    }
-    return resp.json();
-  }
-
-  async function fetchAllPages(pathBase, perPage = 100, maxPages = 5){
-    const out = [];
-    for (let page = 1; page <= maxPages; page++){
-      const pagePath = `${pathBase}${pathBase.includes("?") ? "&" : "?"}per_page=${perPage}&page=${page}`;
-      const data = await apiFetch(pagePath);
-      if (!Array.isArray(data) || data.length === 0) break;
-      out.push(...data);
-      if (data.length < perPage) break;
-    }
-    return out;
-  }
-
-  async function getCourses(){
-    const cache = loadCache("cache:courses", 1000*60*60*6); // 6h
-    if (cache) return cache;
-    const list = await fetchAllPages("api/v1/courses?enrollment_state=active");
-    const map = {};
-    for (const c of list) map[c.id] = c;
-    saveCache("cache:courses", map);
-    return map;
-  }
-
-  async function getTodo(){
-    const cache = loadCache("cache:todo", 1000*60*5); // 5min
-    if (cache) return cache;
-    const items = await fetchAllPages("api/v1/users/self/todo");
-    saveCache("cache:todo", items);
-    return items;
-  }
-
-  /* ---------- Rendering pipeline ---------- */
-  function filterSort(items){
-    let arr = items.slice();
-
-    // Apply snooze (hide snoozed)
-    arr = applySnoozeFilter(arr);
-
-    // Attach course names
-    arr = arr.map(x => {
-      const courseId = x.assignment?.course_id || x.course_id || null;
-      const courseName = courseId && state.courses?.[courseId]?.name || x.context_name || null;
-      return { ...x, _courseName: courseName };
-    });
-
-    // Search
-    const q = state.ui.search.trim().toLowerCase();
-    if (q){
-      arr = arr.filter(x =>
-        (x.title || x.assignment?.name || "").toLowerCase().includes(q) ||
-        (x._courseName || "").toLowerCase().includes(q)
-      );
-    }
-
-    // Hide done
-    if (state.ui.hideDone){
-      arr = arr.filter(x => !isDone(x));
-    }
-
-    // Filter by time bucket
-    if (state.ui.filter !== "all"){
-      arr = arr.filter(x => {
-        if (state.ui.filter === "done") return isDone(x);
-        const cat = dueCategory(parseDue(x));
-        return cat === state.ui.filter;
+  function createDeck() {
+    const deck = [];
+    for (const c of colors) {
+      deck.push({ color: c, value: "0" });
+      numbers.slice(1).forEach((n) => {
+        deck.push({ color: c, value: n });
+        deck.push({ color: c, value: n });
+      });
+      actions.forEach((a) => {
+        deck.push({ color: c, value: a });
+        deck.push({ color: c, value: a });
       });
     }
-
-    // Sort
-    if (state.ui.sort === "dueAsc"){
-      arr.sort((a,b) => (new Date(parseDue(a)||8640000000000000) - new Date(parseDue(b)||8640000000000000)));
-    } else if (state.ui.sort === "dueDesc"){
-      arr.sort((a,b) => (new Date(parseDue(b)||8640000000000000) - new Date(parseDue(a)||8640000000000000)));
-    } else if (state.ui.sort === "courseAsc"){
-      arr.sort((a,b) => ( (a._courseName||"").localeCompare(b._courseName||"") ));
+    for (let i = 0; i < 4; i++) {
+      deck.push({ color: "wild", value: "wild" });
+      deck.push({ color: "wild", value: "wild4" });
     }
-
+    return deck;
+  }
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
     return arr;
   }
-
-  function renderAll(){
-    clearLists();
-
-    const items = filterSort(state.todo);
-
-    let cToday=0, cWeek=0, cLater=0, cPast=0;
-
-    for (const it of items){
-      const cat = dueCategory(parseDue(it));
-      const courseName = it._courseName;
-
-      // All
-      renderItem(listAll, it, courseName);
-
-      // Buckets
-      if (cat === "today"){ renderItem(listToday, it, courseName); cToday++; }
-      else if (cat === "week"){ renderItem(listWeek, it, courseName); cWeek++; }
-      else if (cat === "past"){ /* Past goes only to KPIs */ cPast++; }
-      else { renderItem(listLater, it, courseName); cLater++; }
+  function drawCard() {
+    if (state.deck.length === 0) {
+      if (state.discard.length <= 1) return null;
+      const top = state.discard.pop();
+      const rest = state.discard;
+      state.discard = [top];
+      shuffle(rest);
+      state.deck = rest;
     }
-
-    // Empty states
-    if (!listToday.children.length) listToday.innerHTML = empty("Nothing due today 🎉", "You’re all caught up.");
-    if (!listWeek.children.length)  listWeek.innerHTML  = empty("No items in the next 7 days", "Nice! Keep it rolling.");
-    if (!listLater.children.length) listLater.innerHTML = empty("No later items", "When new assignments appear they’ll show here.");
-    if (!listAll.children.length)   listAll.innerHTML   = empty("No To-Do items", "Add assignments in Canvas and refresh.");
-
-    // KPIs & chips
-    kpiToday.textContent = cToday;
-    kpiWeek.textContent  = cWeek;
-    kpiLater.textContent = cLater;
-    kpiPast.textContent  = cPast;
-
-    ctToday.textContent = cToday;
-    ctWeek.textContent  = cWeek;
-    ctLater.textContent = cLater;
-    ctAll.textContent   = items.length;
+    return state.deck.pop() || null;
   }
-
-  function empty(title, subtitle){
-    return `
-      <li class="item">
-        <div class="item-left">
-          <p class="item-title">${title}</p>
-          <div class="item-meta">${subtitle}</div>
-        </div>
-      </li>
-    `;
-  }
-
-  /* ---------- Load pipeline ---------- */
-  async function loadDashboard(){
-    setDashStatus("warn","Loading…");
-    showSkeletons(true);
-    try{
-      if (!state.courses) state.courses = await getCourses();
-      state.todo = await getTodo();
-      renderAll();
-      setDashStatus("ok","Loaded.");
-    } catch (err){
-      console.error(err);
-      setDashStatus("err", err.message || "Failed to load data.");
-    } finally {
-      showSkeletons(false);
+  function drawCards(player, count) {
+    for (let i = 0; i < count; i++) {
+      const card = drawCard();
+      if (card) player.hand.push(card);
     }
   }
+  function deal() {
+    logList.innerHTML = "";
+    hideChooser();
+    pendingWild = null;
+    state.players = [
+      { name: "You", type: "human", hand: [] },
+      { name: "Bot Alpha", type: "bot", hand: [] },
+      { name: "Bot Beta", type: "bot", hand: [] },
+      { name: "Bot Gamma", type: "bot", hand: [] },
+    ];
+    state.deck = shuffle(createDeck());
+    state.discard = [];
+    state.winner = null;
+    state.pendingDraw = 0;
+    state.direction = 1;
+    for (let i = 0; i < 7; i++) state.players.forEach((p) => drawCards(p, 1));
 
-  /* ---------- Events ---------- */
-  // Connect form
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    let starter;
+    do {
+      starter = drawCard();
+    } while (starter && starter.value === "wild4");
+    state.discard.push(starter);
+    state.currentColor =
+      starter.color === "wild"
+        ? colors[Math.floor(Math.random() * colors.length)]
+        : starter.color;
+    state.currentPlayer = 0;
+    state.started = true;
+    log("New match started!");
+    log(`${state.players[state.currentPlayer].name} begins.`);
+    render();
+    continueGame();
+  }
+  function topCard() {
+    return state.discard[state.discard.length - 1];
+  }
+  function playable(card) {
+    const tc = topCard();
+    if (!tc) return true;
+    const colorMatch = card.color === state.currentColor;
+    const valueMatch = card.value === tc.value;
+    return colorMatch || valueMatch || card.color === "wild";
+  }
+  function nextPlayer() {
+    const len = state.players.length;
+    state.currentPlayer = (state.currentPlayer + state.direction + len) % len;
+  }
+  function colorToHex(c) {
+    const map = {
+      red: "#ff4d4d",
+      yellow: "#ffd93b",
+      green: "#45e26b",
+      blue: "#4da3ff",
+    };
+    return map[c] || "#b6c0d1";
+  }
+  function formatValue(v) {
+    if (v === "draw2") return "+2";
+    if (v === "wild4") return "+4";
+    if (v === "skip") return "Skip";
+    if (v === "reverse") return "Reverse";
+    if (v === "wild") return "Wild";
+    return v;
+  }
+  function renderCard(card) {
+    const div = document.createElement("button");
+    div.type = "button";
+    div.className = "uno-card";
+    div.dataset.color = card.color;
+    div.innerHTML = `<span class="value">${formatValue(
+      card.value
+    )}</span><span class="value small">${
+      card.color === "wild" ? "wild" : card.color
+    }</span>`;
+    return div;
+  }
+  function render() {
+    directionLabel.textContent =
+      state.direction === 1 ? "Clockwise" : "Counter-clockwise";
+    currentTurnEl.textContent = state.players[state.currentPlayer]?.name || "—";
+    drawCount.textContent = state.deck.length || 0;
 
-    const baseRaw  = baseUrlInput.value.trim();
-    const tokenRaw = tokenInput.value.trim();
-    if (!baseRaw || !tokenRaw){ setStatus("err","Please fill both fields."); return; }
-    const base = normalizeUrl(baseRaw);
-    if (!isValidUrl(base)){ setStatus("err","Enter a valid Canvas URL (https://…)"); return; }
+    const tc = topCard();
+    if (tc) {
+      topCardEl.querySelector("strong").textContent = formatValue(tc.value);
+      topCardEl.style.setProperty(
+        "--card-color",
+        colorToHex(tc.activeColor || tc.color)
+      );
+      currentColorDot.style.setProperty("--c", colorToHex(state.currentColor));
+    } else {
+      topCardEl.querySelector("strong").textContent = "—";
+      topCardEl.style.removeProperty("--card-color");
+      currentColorDot.style.removeProperty("--c");
+    }
 
-    setStatus("warn","Verifying…");
-    verifyBtn.disabled = true;
+    if (!state.players.length) {
+      opponentsEl.innerHTML = "";
+      handEl.innerHTML = "";
+      return;
+    }
 
-    try{
-      const resp = await fetch(`${PROXY_URL}?base=${encodeURIComponent(base)}&path=${encodeURIComponent("api/v1/users/self/profile")}`, {
-        headers: { "X-Canvas-Token": tokenRaw, "Accept":"application/json" }
+    opponentsEl.innerHTML = "";
+    state.players.forEach((p, idx) => {
+      if (p.type === "bot") {
+        const card = document.createElement("div");
+        card.className = "opponent card";
+        card.innerHTML = `
+          <div class="opponent-top">
+            <span class="dot"></span>
+            <strong>${p.name}</strong>
+          </div>
+          <p class="muted small">${p.hand.length} cards</p>
+        `;
+        if (idx === state.currentPlayer) card.classList.add("active");
+        opponentsEl.appendChild(card);
+      }
+    });
+
+    handEl.innerHTML = "";
+    const you = state.players[0];
+    you.hand.forEach((card, idx) => {
+      const btn = renderCard(card);
+      const canPlay = playable(card) && state.currentPlayer === 0 && !state.winner;
+      if (canPlay) btn.classList.add("playable");
+      btn.addEventListener("click", () => {
+        if (state.currentPlayer !== 0 || state.winner) return;
+        if (!playable(card)) return;
+        if (card.color === "wild") {
+          pendingWild = { idx, card };
+          showChooser();
+          return;
+        }
+        playCard(0, idx, card.color);
       });
-      const text = await resp.text();
-      let profile = {};
-      try { profile = JSON.parse(text); } catch {}
+      handEl.appendChild(btn);
+    });
 
-      if (resp.status === 401){ setStatus("err","Unauthorized (401). Token invalid or expired."); return; }
-      if (!resp.ok){ setStatus("err", `Proxy error ${resp.status}: ${text || resp.statusText}`); return; }
-
-      state.baseUrl = base;
-      state.token   = tokenRaw;
-      state.profile = profile;
-      saveAuth();
-      setOpenCanvasHref();
-
-      setStatus("ok", `Connected! Hi, ${profile.name}.`);
-      studentName.textContent = (profile.name || "Student").toUpperCase();
-      showDashboard();
-      await loadDashboard();
-    } catch (err){
-      console.error(err);
-      setStatus("err","Network error. Make sure your Netlify site is deployed.");
-    } finally {
-      verifyBtn.disabled = false;
+    if (state.winner) {
+      setStatus(`${state.winner} wins the match!`);
+    } else if (state.started) {
+      setStatus(`Playing… ${state.players[state.currentPlayer].name}'s turn.`);
     }
+  }
+  function showChooser() {
+    colorChooser.classList.remove("hidden");
+  }
+  function hideChooser() {
+    colorChooser.classList.add("hidden");
+  }
+
+  colorButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!pendingWild) return;
+      const color = btn.dataset.color;
+      playCard(0, pendingWild.idx, color);
+      pendingWild = null;
+      hideChooser();
+    });
   });
 
-  // Token show/hide
-  toggleBtn.addEventListener("click", () => {
-    const isPw = tokenInput.type === "password";
-    tokenInput.type = isPw ? "text" : "password";
-    toggleBtn.textContent = isPw ? "Hide" : "Show";
-  });
+  function playCard(playerIndex, handIndex, chosenColor) {
+    const player = state.players[playerIndex];
+    const card = player.hand.splice(handIndex, 1)[0];
+    if (card.color === "wild") {
+      state.currentColor =
+        chosenColor || colors[Math.floor(Math.random() * colors.length)];
+      card.activeColor = state.currentColor;
+    } else {
+      state.currentColor = card.color;
+      card.activeColor = card.color;
+    }
+    state.discard.push(card);
+    log(`${player.name} plays ${formatValue(card.value)} (${state.currentColor})`);
 
-  // Toolbar controls
-  refreshBtn.addEventListener("click", async () => {
-    // Clear cache and reload
-    localStorage.removeItem("cache:todo");
-    await loadDashboard();
-    toast("Refreshed");
-  });
+    let skipCount = 0;
+    if (card.value === "skip") skipCount = 1;
+    if (card.value === "reverse") {
+      state.direction *= -1;
+      if (state.players.length === 2) skipCount = 1;
+    }
+    if (card.value === "draw2") {
+      state.pendingDraw = 2;
+    } else if (card.value === "wild4") {
+      state.pendingDraw = 4;
+    }
 
-  disconnectBtn.addEventListener("click", () => {
-    if (!confirm("Disconnect and clear local token?")) return;
-    localStorage.removeItem("canvasAuth");
-    localStorage.removeItem("cache:courses");
-    localStorage.removeItem("cache:todo");
-    // Keep done/snooze by design (local study workflow), but could clear if wanted
-    state = { ...state, baseUrl:null, token:null, profile:null, courses:null, todo:[] };
-    showConnect();
-    setOpenCanvasHref();
-    toast("Disconnected");
-  });
+    if (player.hand.length === 0) {
+      state.winner = player.name;
+    }
 
-  // Filters
-  searchInput.addEventListener("input", () => { state.ui.search = searchInput.value; renderAll(); });
-  filterSelect.addEventListener("change", () => { state.ui.filter = filterSelect.value; renderAll(); });
-  sortSelect.addEventListener("change", () => { state.ui.sort = sortSelect.value; renderAll(); });
-  hideDoneCB.addEventListener("change", () => { state.ui.hideDone = hideDoneCB.checked; renderAll(); });
+    if (!state.winner) {
+      for (let i = 0; i <= skipCount; i++) nextPlayer();
+    }
+    continueGame();
+  }
 
-  // Theme
+  function handlePendingDraw() {
+    if (state.pendingDraw > 0) {
+      const player = state.players[state.currentPlayer];
+      drawCards(player, state.pendingDraw);
+      log(
+        `${player.name} draws ${state.pendingDraw} card${
+          state.pendingDraw > 1 ? "s" : ""
+        }.`
+      );
+      state.pendingDraw = 0;
+      nextPlayer();
+      render();
+      return true;
+    }
+    return false;
+  }
+
+  function pickBotColor(hand) {
+    const counts = { red: 0, yellow: 0, green: 0, blue: 0 };
+    hand.forEach((c) => {
+      if (colors.includes(c.color)) counts[c.color]++;
+    });
+    const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return best?.[0] || colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  function botTurn() {
+    if (state.winner) return;
+    if (handlePendingDraw()) {
+      setTimeout(() => continueGame(), 350);
+      return;
+    }
+    const bot = state.players[state.currentPlayer];
+    const playableIdx = bot.hand
+      .map((c, i) => ({ c, i }))
+      .filter((x) => playable(x.c));
+
+    if (playableIdx.length) {
+      const choice = playableIdx[0];
+      const chosenColor =
+        choice.c.color === "wild" ? pickBotColor(bot.hand) : choice.c.color;
+      playCard(state.currentPlayer, choice.i, chosenColor);
+      return;
+    }
+
+    drawCards(bot, 1);
+    log(`${bot.name} draws a card.`);
+
+    const newPlayable = bot.hand
+      .map((c, i) => ({ c, i }))
+      .filter((x) => playable(x.c));
+    if (newPlayable.length) {
+      const choice = newPlayable[0];
+      const chosenColor =
+        choice.c.color === "wild" ? pickBotColor(bot.hand) : choice.c.color;
+      playCard(state.currentPlayer, choice.i, chosenColor);
+      return;
+    }
+
+    log(`${bot.name} passes.`);
+    nextPlayer();
+    continueGame();
+  }
+
+  function continueGame(delay = 350) {
+    render();
+    if (state.winner) return;
+
+    if (state.currentPlayer === 0) {
+      if (handlePendingDraw()) {
+        setTimeout(() => continueGame(), 350);
+        return;
+      }
+      return;
+    }
+    setTimeout(botTurn, delay);
+  }
+
+  /* ---------- User actions ---------- */
+  function drawForPlayer() {
+    if (!state.started || state.winner) return;
+    if (state.currentPlayer !== 0) return;
+    drawCards(state.players[0], 1);
+    log("You draw a card.");
+    render();
+  }
+  function passTurn() {
+    if (!state.started || state.winner) return;
+    if (state.currentPlayer !== 0) return;
+    nextPlayer();
+    continueGame();
+  }
+
+  newGameBtn.addEventListener("click", deal);
+  startBtn.addEventListener("click", deal);
+  drawBtn.addEventListener("click", drawForPlayer);
+  passBtn.addEventListener("click", passTurn);
+  drawPile.addEventListener("click", drawForPlayer);
   themeBtn.addEventListener("click", toggleTheme);
+  clearLogBtn.addEventListener("click", () => (logList.innerHTML = ""));
 
-  // Keyboard shortcuts
   document.addEventListener("keydown", (e) => {
-    if (e.key === "/"){ e.preventDefault(); searchInput.focus(); }
-    if (e.key.toLowerCase() === "r"){ e.preventDefault(); refreshBtn.click(); }
-    if (e.key.toLowerCase() === "d"){ e.preventDefault(); toggleTheme(); }
+    if (e.key.toLowerCase() === "d") toggleTheme();
+    if (e.key === " ") {
+      if (state.currentPlayer === 0) {
+        e.preventDefault();
+        drawForPlayer();
+      }
+    }
   });
 
   /* ---------- Init ---------- */
-  (function init(){
-    initTheme();
-    const saved = loadAuth();
-    if (saved?.baseUrl && saved?.token){
-      state.baseUrl = saved.baseUrl;
-      state.token   = saved.token;
-      state.profile = saved.profile || null;
-      if (state.profile?.name) studentName.textContent = (state.profile.name || "Student").toUpperCase();
-      setOpenCanvasHref();
-      showDashboard();
-
-      // Optimistic render from cache, then refresh
-      const cachedCourses = loadCache("cache:courses", 1000*60*60*24);
-      const cachedTodo    = loadCache("cache:todo",    1000*60*60*24);
-      if (cachedCourses) state.courses = cachedCourses;
-      if (cachedTodo)    state.todo    = cachedTodo;
-      if (cachedCourses || cachedTodo) renderAll();
-      loadDashboard();
-    } else {
-      showConnect();
-    }
-  })();
+  initTheme();
+  setStatus("Waiting to start…");
+  render();
 });
